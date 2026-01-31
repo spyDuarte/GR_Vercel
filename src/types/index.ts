@@ -7,6 +7,7 @@ export interface ClothingItem {
   image: string;
   tags: string[];
   createdAt: number;
+  userId?: string;
 }
 
 export interface Outfit {
@@ -14,6 +15,14 @@ export interface Outfit {
   name: string;
   items: string[];
   createdAt: number;
+  userId?: string;
+}
+
+export interface User {
+  id: string;
+  email: string;
+  name?: string;
+  image?: string;
 }
 
 export type Category = 
