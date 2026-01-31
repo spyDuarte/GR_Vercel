@@ -13,12 +13,13 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import type { AuthResult } from '@/lib/auth';
 
 interface AuthScreenProps {
-  onSignIn: (email: string, password: string) => Promise<{ success: boolean; error: string | null }>;
-  onSignUp: (email: string, password: string) => Promise<{ success: boolean; error: string | null }>;
-  onGoogleSignIn: () => Promise<{ success: boolean; error: string | null }>;
-  onAppleSignIn: () => Promise<{ success: boolean; error: string | null }>;
+  onSignIn: (email: string, password: string) => Promise<AuthResult>;
+  onSignUp: (email: string, password: string) => Promise<AuthResult>;
+  onGoogleSignIn: () => Promise<AuthResult>;
+  onAppleSignIn: () => Promise<AuthResult>;
 }
 
 export function AuthScreen({ 

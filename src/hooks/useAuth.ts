@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
 import {
-  onAuthChange,
   signUpWithEmail,
   signInWithEmail,
   signInWithGoogle,
   signInWithApple,
   logOut,
-  type User,
-} from '@/lib/firebase';
+  getCurrentUser,
+  onAuthChange,
+  type AuthResult,
+} from '@/lib/auth';
+import type { User } from '@/types';
 
 interface AuthState {
   user: User | null;
@@ -16,11 +18,11 @@ interface AuthState {
 }
 
 interface AuthActions {
-  signUp: (email: string, password: string) => Promise<{ success: boolean; error: string | null }>;
-  signIn: (email: string, password: string) => Promise<{ success: boolean; error: string | null }>;
-  signInGoogle: () => Promise<{ success: boolean; error: string | null }>;
-  signInApple: () => Promise<{ success: boolean; error: string | null }>;
-  logout: () => Promise<{ success: boolean; error: string | null }>;
+  signUp: (email: string, password: string) => Promise<AuthResult>;
+  signIn: (email: string, password: string) => Promise<AuthResult>;
+  signInGoogle: () => Promise<AuthResult>;
+  signInApple: () => Promise<AuthResult>;
+  logout: () => Promise<{ success: boolean; error?: string }>;
 }
 
 export function useAuth(): AuthState & AuthActions {
@@ -28,52 +30,53 @@ export function useAuth(): AuthState & AuthActions {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthChange((currentUser) => {
-      setUser(currentUser);
-      setIsLoading(false);
+    // Check for existing session
+    const currentUser = getCurrentUser();
+    setUser(currentUser);
+    setIsLoading(false);
+
+    // Listen for auth changes
+    const unsubscribe = onAuthChange((newUser) => {
+      setUser(newUser);
     });
 
     return () => unsubscribe();
   }, []);
 
-  const signUp = useCallback(async (email: string, password: string) => {
-    const { error } = await signUpWithEmail(email, password);
-    if (error) {
-      return { success: false, error };
-    }
-    return { success: true, error: null };
+  const signUp = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+    setIsLoading(true);
+    const result = await signUpWithEmail(email, password);
+    setIsLoading(false);
+    return result;
   }, []);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await signInWithEmail(email, password);
-    if (error) {
-      return { success: false, error };
-    }
-    return { success: true, error: null };
+  const signIn = useCallback(async (email: string, password: string): Promise<AuthResult> => {
+    setIsLoading(true);
+    const result = await signInWithEmail(email, password);
+    setIsLoading(false);
+    return result;
   }, []);
 
-  const signInGoogle = useCallback(async () => {
-    const { error } = await signInWithGoogle();
-    if (error) {
-      return { success: false, error };
-    }
-    return { success: true, error: null };
+  const signInGoogle = useCallback(async (): Promise<AuthResult> => {
+    setIsLoading(true);
+    const result = await signInWithGoogle();
+    setIsLoading(false);
+    return result;
   }, []);
 
-  const signInApple = useCallback(async () => {
-    const { error } = await signInWithApple();
-    if (error) {
-      return { success: false, error };
-    }
-    return { success: true, error: null };
+  const signInApple = useCallback(async (): Promise<AuthResult> => {
+    setIsLoading(true);
+    const result = await signInWithApple();
+    setIsLoading(false);
+    return result;
   }, []);
 
   const logout = useCallback(async () => {
-    const { error } = await logOut();
-    if (error) {
-      return { success: false, error };
-    }
-    return { success: true, error: null };
+    setIsLoading(true);
+    const result = await logOut();
+    setUser(null);
+    setIsLoading(false);
+    return result;
   }, []);
 
   return {

@@ -1,34 +1,69 @@
-import { useCallback, useMemo } from 'react';
-import { useLocalStorage } from './useLocalStorage';
+import { useCallback, useMemo, useState, useEffect } from 'react';
 import type { ClothingItem, Outfit, Category } from '@/types';
+import {
+  getItems,
+  saveItem,
+  updateItem,
+  deleteItem,
+  getOutfits,
+  saveOutfit,
+  updateOutfit,
+  deleteOutfit,
+} from '@/lib/api';
 
 export function useWardrobe() {
-  const [items, setItems] = useLocalStorage<ClothingItem[]>('wardrobe-items', []);
-  const [outfits, setOutfits] = useLocalStorage<Outfit[]>('wardrobe-outfits', []);
+  const [items, setItems] = useState<ClothingItem[]>([]);
+  const [outfits, setOutfits] = useState<Outfit[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const addItem = useCallback((item: Omit<ClothingItem, 'id' | 'createdAt'>) => {
+  // Load data on mount
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        const [loadedItems, loadedOutfits] = await Promise.all([
+          getItems(),
+          getOutfits(),
+        ]);
+        setItems(loadedItems);
+        setOutfits(loadedOutfits);
+      } catch (error) {
+        console.error('Failed to load data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, []);
+
+  const addItem = useCallback(async (item: Omit<ClothingItem, 'id' | 'createdAt'>) => {
     const newItem: ClothingItem = {
       ...item,
       id: Date.now().toString(),
       createdAt: Date.now(),
     };
+    await saveItem(newItem);
     setItems(prev => [newItem, ...prev]);
     return newItem.id;
-  }, [setItems]);
+  }, []);
 
-  const updateItem = useCallback((id: string, updates: Partial<ClothingItem>) => {
+  const updateItemLocal = useCallback(async (id: string, updates: Partial<ClothingItem>) => {
+    await updateItem(id, updates);
     setItems(prev => prev.map(item => 
       item.id === id ? { ...item, ...updates } : item
     ));
-  }, [setItems]);
+  }, []);
 
-  const deleteItem = useCallback((id: string) => {
+  const deleteItemLocal = useCallback(async (id: string) => {
+    await deleteItem(id);
     setItems(prev => prev.filter(item => item.id !== id));
+    // Also remove from outfits
     setOutfits(prev => prev.map(outfit => ({
       ...outfit,
       items: outfit.items.filter(itemId => itemId !== id)
     })));
-  }, [setItems, setOutfits]);
+  }, []);
 
   const getItemById = useCallback((id: string) => {
     return items.find(item => item.id === id);
@@ -38,25 +73,28 @@ export function useWardrobe() {
     return items.filter(item => item.category === category);
   }, [items]);
 
-  const addOutfit = useCallback((outfit: Omit<Outfit, 'id' | 'createdAt'>) => {
+  const addOutfit = useCallback(async (outfit: Omit<Outfit, 'id' | 'createdAt'>) => {
     const newOutfit: Outfit = {
       ...outfit,
       id: Date.now().toString(),
       createdAt: Date.now(),
     };
+    await saveOutfit(newOutfit);
     setOutfits(prev => [newOutfit, ...prev]);
     return newOutfit.id;
-  }, [setOutfits]);
+  }, []);
 
-  const updateOutfit = useCallback((id: string, updates: Partial<Outfit>) => {
+  const updateOutfitLocal = useCallback(async (id: string, updates: Partial<Outfit>) => {
+    await updateOutfit(id, updates);
     setOutfits(prev => prev.map(outfit => 
       outfit.id === id ? { ...outfit, ...updates } : outfit
     ));
-  }, [setOutfits]);
+  }, []);
 
-  const deleteOutfit = useCallback((id: string) => {
+  const deleteOutfitLocal = useCallback(async (id: string) => {
+    await deleteOutfit(id);
     setOutfits(prev => prev.filter(outfit => outfit.id !== id));
-  }, [setOutfits]);
+  }, []);
 
   const getOutfitById = useCallback((id: string) => {
     return outfits.find(outfit => outfit.id === id);
@@ -95,16 +133,17 @@ export function useWardrobe() {
   return {
     items,
     outfits,
+    isLoading,
     stats,
     categoryCounts,
     addItem,
-    updateItem,
-    deleteItem,
+    updateItem: updateItemLocal,
+    deleteItem: deleteItemLocal,
     getItemById,
     getItemsByCategory,
     addOutfit,
-    updateOutfit,
-    deleteOutfit,
+    updateOutfit: updateOutfitLocal,
+    deleteOutfit: deleteOutfitLocal,
     getOutfitById,
     getOutfitItems,
   };
