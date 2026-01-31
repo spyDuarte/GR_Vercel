@@ -434,7 +434,7 @@ function App() {
             <User className="w-10 h-10" />
           </div>
           <h2 className="text-xl font-bold text-center">
-            {user?.displayName || user?.email?.split('@')[0] || 'Meu Estilo'}
+            {user?.name || user?.email?.split('@')[0] || 'Meu Estilo'}
           </h2>
           <p className="text-white/80 text-center text-sm mt-1">
             {user?.email || 'Guarda-Roupa Virtual'}
